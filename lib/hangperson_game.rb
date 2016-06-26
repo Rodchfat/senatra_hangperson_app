@@ -1,103 +1,75 @@
 class HangpersonGame
+
   # add the necessary class methods, attributes, etc. here
   # to make the tests in spec/hangperson_game_spec.rb pass.
 
-  attr_accessor :guesses, :wrong_guesses, :word, :valid
+  # Get a word from remote "random word" service
 
-  ##
-  # Constructor
-  #
-  def initialize(word)
-    @word = word
+  def initialize (new_word)
+    @word = new_word
     @guesses = ''
     @wrong_guesses = ''
   end
 
-  ##
-  # Class Methods
-  #
+  attr_accessor :word, :guesses, :wrong_guesses
 
-  # Get a word from remote "random word" service
+  def guess (character)
+    if character == nil
+      raise ArgumentError.new("No nil is allowed")
+    elsif character.length == 0
+      raise ArgumentError.new("No Empty character is allowed")
+    elsif character !~ /[[:alpha:]]/
+      raise ArgumentError.new("No Non-Letter character is allowed")
+    end
+
+    character = character.downcase
+
+    if @word.include? character
+      if @guesses.include? character
+        return false
+      else
+        @guesses += character
+        return true
+      end
+    else
+      if @wrong_guesses.include? character
+        return false
+      else  
+        @wrong_guesses += character
+        return true
+      end
+    end
+  end
+
+  def word_with_guesses
+    output_string = ''
+    @word.split("").each do |char|
+      if @guesses.include? char
+        output_string += char
+      else
+        output_string += '-'
+      end
+    end
+    return output_string
+  end
+
+  def check_win_or_lose
+    if @wrong_guesses.length >= 7
+      return :lose
+    end
+    @word.split("").each do |char|
+      if !@guesses.include? char
+        return :play
+      end
+    end
+    return :win
+  end
+
   def self.get_random_word
     require 'uri'
     require 'net/http'
     uri = URI('http://watchout4snakes.com/wo4snakes/Random/RandomWord')
-    Net::HTTP.post_form(uri, {}).body
-  rescue
-    raise 'Could not get random word.'
+    Net::HTTP.post_form(uri ,{}).body
   end
 
-  ##
-  # Instance Methods
-  #
-
-  # validate the guess and then evaluate the letter guessed.
-  def guess(letter)
-    if valid_guess?(letter)
-      valid = true
-    else
-      valid = false
-      fail ArgumentError
-    end
-
-    # if user has already guessed letter, no need to check and duplicate value
-    return false if already_guessed?(letter)
-
-    # check if the guess is correct or incorrect
-    check_guess(letter) if valid
-
-    # return true if guess is valid
-    true
-  end
-
-  # guess all the letters in the string
-  def guess_several_letters(letters)
-    letters.each { |letter| guess(letter) }
-  end
-
-  # return :lose, :win, :play based on the state of the word and number of guesses.
-  def check_win_or_lose
-    return :lose if number_of_wrong_guesses >= 7
-    return :win unless word_with_guesses.include?('-')
-    :play
-  end
-
-  # build the word showing only the correctly guessed letters
-  def word_with_guesses
-    result = ''
-
-    word.split('').each do |letter|
-      if guesses.include?(letter)
-        result << letter
-      else
-        result << '-'
-      end
-    end
-
-    result
-  end
-
-  private
-
-  # check if a letter has already been guessed
-  def already_guessed?(letter)
-    (guesses + wrong_guesses).include?(letter)
-  end
-
-  # check if the guess is correct or incorrect and append to the appropriate list.
-  def check_guess(letter)
-    if word.include?(letter)
-      guesses << letter
-    else
-      wrong_guesses << letter
-    end
-  end
-
-  def number_of_wrong_guesses
-    wrong_guesses.length
-  end
-
-  def valid_guess?(letter)
-    letter =~ /^[a-z]$/i
-  end
 end
